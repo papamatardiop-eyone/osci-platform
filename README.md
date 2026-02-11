@@ -94,7 +94,11 @@ The OSCI Platform follows a microservices architecture with the following compon
 
 ## Community Referentiels
 
-OSCI uses a **community-driven referentiel system**. Security frameworks (ISO 27001, NIST CSF, OWASP Top 10, CIS Controls, etc.) and their associated checklists are maintained in a separate public repository.
+OSCI uses a **community-driven referentiel system**. Security frameworks (ISO 27001, NIST CSF, OWASP Top 10, CIS Controls, etc.) and their associated checklists are maintained in a separate public repository:
+
+**Repository : [https://github.com/zlorgoncho1/osci-referentiel](https://github.com/zlorgoncho1/osci-referentiel)**
+
+Si vous êtes **expert en sécurité** sur des aspects spécifiques (frameworks, contrôles, bonnes pratiques) et souhaitez contribuer (nouveaux référentiels, mises à jour, checklists), c’est dans ce dépôt que se font les contributions.
 
 ### How It Works
 
@@ -106,7 +110,7 @@ OSCI uses a **community-driven referentiel system**. Security frameworks (ISO 27
 
 ### Contributing Referentiels
 
-Anyone can contribute new security frameworks or checklists by submitting a PR to the community referentiel repository. See the repository's README for the JSON format specification.
+Anyone can contribute new security frameworks or checklists by submitting a PR to the community referentiel repository ([osci-referentiel](https://github.com/zlorgoncho1/osci-referentiel)). See that repository's README and CONTRIBUTING for the JSON format specification and contribution guidelines.
 
 ---
 
