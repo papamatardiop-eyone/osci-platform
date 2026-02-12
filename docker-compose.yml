@@ -51,8 +51,6 @@ services:
       KC_HTTP_MANAGEMENT_HEALTH_ENABLED: "false"
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    ports:
-      - "8080:8080"
     volumes:
       - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/osci-realm.json:ro
     healthcheck:
@@ -120,8 +118,6 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
-    ports:
-      - "9001:9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
@@ -152,8 +148,6 @@ services:
       MINIO_BUCKET: osci-evidence
       API_PORT: ${API_PORT}
       API_CORS_ORIGIN: ${API_CORS_ORIGIN}
-    ports:
-      - "${API_PORT}:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -184,8 +178,6 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       API_URL: ${API_URL}
-    ports:
-      - "80:80"
     depends_on:
       - api
     networks:
