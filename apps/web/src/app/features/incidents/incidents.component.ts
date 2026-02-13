@@ -1,12 +1,14 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
+import { PermissionService } from '../../core/services/permission.service';
 
 @Component({
   selector: 'app-incidents',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <div class="space-y-6">
@@ -14,9 +16,15 @@ import { ApiService } from '../../core/services/api.service';
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-brand font-bold text-white">Incidents</h1>
-          <p class="text-xs text-zinc-500 mt-1">Security incident tracking and response</p>
+          <p class="text-xs text-zinc-500 mt-1">Security incident tracking and response
+            <a routerLink="/app/docs/module-incidents"
+               class="inline-flex items-center gap-1 ml-3 text-zinc-600 hover:text-emerald-400 transition-colors">
+              <iconify-icon icon="solar:book-2-linear" width="12"></iconify-icon>
+              <span class="text-[10px]">Guide</span>
+            </a>
+          </p>
         </div>
-        <button (click)="showCreateModal = true"
+        <button *ngIf="perm.canGlobal('incident', 'create')" (click)="showCreateModal = true"
           class="px-4 py-2 bg-white text-black rounded-lg text-sm font-brand font-semibold hover:bg-zinc-200 transition-colors flex items-center gap-2">
           <iconify-icon icon="solar:shield-warning-linear" width="16"></iconify-icon>
           Report Incident
@@ -105,13 +113,14 @@ import { ApiService } from '../../core/services/api.service';
               </td>
               <td class="p-4 text-xs text-zinc-400 font-mono">{{ inc.createdAt | date:'yyyy-MM-dd HH:mm' }}</td>
               <td class="p-4">
-                <select [ngModel]="inc.status" (ngModelChange)="updateStatus(inc, $event)"
+                <select *ngIf="perm.canGlobal('incident', 'update')" [ngModel]="inc.status" (ngModelChange)="updateStatus(inc, $event)"
                   class="bg-zinc-900 border border-white/10 rounded px-2 py-1 text-[10px] text-zinc-400 focus:outline-none">
                   <option value="open">Open</option>
                   <option value="investigating">Investigating</option>
                   <option value="mitigated">Mitigated</option>
                   <option value="resolved">Resolved</option>
                 </select>
+                <span *ngIf="!perm.canGlobal('incident', 'update')" class="text-[10px] text-zinc-500">{{ inc.status }}</span>
               </td>
             </tr>
             <tr *ngIf="filteredIncidents.length === 0">
@@ -212,7 +221,7 @@ export class IncidentsComponent implements OnInit {
   mitigatedCount = 0;
   resolvedCount = 0;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, public perm: PermissionService) {}
 
   ngOnInit(): void {
     this.loadIncidents();

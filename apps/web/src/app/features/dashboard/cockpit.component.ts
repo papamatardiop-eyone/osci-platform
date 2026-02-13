@@ -2,6 +2,7 @@ import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { PermissionService } from '../../core/services/permission.service';
 
 interface DomainScore {
   name: string;
@@ -26,7 +27,13 @@ interface TaskCounts {
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-brand font-bold text-white">Security Cockpit</h1>
-          <p class="text-xs text-zinc-400 mt-1">Real-time security posture overview</p>
+          <p class="text-xs text-zinc-400 mt-1">Real-time security posture overview
+            <a routerLink="/app/docs/module-cockpit"
+               class="inline-flex items-center gap-1 ml-3 text-zinc-600 hover:text-emerald-400 transition-colors">
+              <iconify-icon icon="solar:book-2-linear" width="12"></iconify-icon>
+              <span class="text-[10px]">Guide</span>
+            </a>
+          </p>
         </div>
         <span class="text-[10px] font-mono text-zinc-500">{{ now | date:'yyyy-MM-dd HH:mm:ss' }}</span>
       </div>
@@ -78,7 +85,7 @@ interface TaskCounts {
       <!-- Second row -->
       <div class="grid grid-cols-12 gap-6">
         <!-- Objects table -->
-        <div class="col-span-8 glass-panel p-6">
+        <div *ngIf="perm.canGlobal('object', 'read')" class="col-span-8 glass-panel p-6">
           <div class="flex items-center justify-between mb-4">
             <p class="text-[10px] uppercase tracking-wider text-zinc-400">Monitored Objects</p>
             <a routerLink="/app/objects" class="text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors">View all &rarr;</a>
@@ -112,9 +119,9 @@ interface TaskCounts {
         </div>
 
         <!-- Remediation Focus + Audit -->
-        <div class="col-span-4 space-y-6">
+        <div [ngClass]="perm.canGlobal('object', 'read') ? 'col-span-4' : 'col-span-12'" class="space-y-6">
           <!-- Remediation -->
-          <div class="glass-panel p-6">
+          <div *ngIf="perm.canGlobal('task', 'read')" class="glass-panel p-6">
             <p class="text-[10px] uppercase tracking-wider text-zinc-400 mb-4">Remediation Focus</p>
             <div class="space-y-3">
               <div class="flex justify-between items-center">
@@ -138,7 +145,7 @@ interface TaskCounts {
           </div>
 
           <!-- Active Projects -->
-          <div class="glass-panel p-6">
+          <div *ngIf="perm.canGlobal('project', 'read')" class="glass-panel p-6">
             <div class="flex items-center justify-between mb-4">
               <p class="text-[10px] uppercase tracking-wider text-zinc-400">Active Projects</p>
               <a routerLink="/app/projects" class="text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors">View all &rarr;</a>
@@ -171,7 +178,7 @@ interface TaskCounts {
           </div>
 
           <!-- Audit Log Stream -->
-          <div class="glass-panel p-6">
+          <div *ngIf="perm.canGlobal('audit_log', 'read')" class="glass-panel p-6">
             <p class="text-[10px] uppercase tracking-wider text-zinc-400 mb-4">Audit Stream</p>
             <div class="space-y-2 max-h-48 overflow-y-auto">
               <div *ngFor="let log of auditLogs" class="text-[10px] font-mono text-zinc-500 py-1 border-b border-white/[0.06]">
@@ -184,6 +191,15 @@ interface TaskCounts {
               </div>
             </div>
           </div>
+
+          <!-- Documentation -->
+          <a routerLink="/app/docs" class="glass-panel p-4 flex items-center gap-3 hover:border-emerald-500/30 transition-colors group">
+            <iconify-icon icon="solar:book-2-linear" width="20" class="text-emerald-400"></iconify-icon>
+            <div>
+              <p class="text-xs font-brand text-white group-hover:text-emerald-400 transition-colors">Documentation</p>
+              <p class="text-[10px] text-zinc-500">Guides et références de la plateforme</p>
+            </div>
+          </a>
         </div>
       </div>
     </div>
@@ -201,7 +217,7 @@ export class CockpitComponent implements OnInit {
   completedProjectCount = 0;
   topProjects: any[] = [];
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, public perm: PermissionService) {}
 
   ngOnInit(): void {
     this.loadData();
@@ -243,41 +259,48 @@ export class CockpitComponent implements OnInit {
       error: () => {},
     });
 
-    this.api.getObjects().subscribe({
-      next: (data) => {
-        this.objects = (data || []).slice(0, 8);
-        this.applyScoresToObjects();
-      },
-      error: () => {
-        this.objects = [];
-      },
-    });
+    if (this.perm.canGlobal('object', 'read')) {
+      this.api.getObjects().subscribe({
+        next: (data) => {
+          this.objects = (data || []).slice(0, 8);
+          this.applyScoresToObjects();
+        },
+        error: () => {
+          this.objects = [];
+        },
+      });
+    }
 
-    this.api.getTasks().subscribe({
-      next: (tasks) => {
-        const all = tasks || [];
-        this.taskCounts = {
-          critical: all.filter((t: any) => t['priority'] === 'Critical').length,
-          high: all.filter((t: any) => t['priority'] === 'High').length,
-          medium: all.filter((t: any) => t['priority'] === 'Medium').length,
-          low: all.filter((t: any) => t['priority'] === 'Low').length,
-        };
-      },
-      error: () => {
-        this.taskCounts = { critical: 0, high: 0, medium: 0, low: 0 };
-      },
-    });
+    if (this.perm.canGlobal('task', 'read')) {
+      this.api.getTasks().subscribe({
+        next: (tasks) => {
+          const all = tasks || [];
+          this.taskCounts = {
+            critical: all.filter((t: any) => t['priority'] === 'Critical').length,
+            high: all.filter((t: any) => t['priority'] === 'High').length,
+            medium: all.filter((t: any) => t['priority'] === 'Medium').length,
+            low: all.filter((t: any) => t['priority'] === 'Low').length,
+          };
+        },
+        error: () => {
+          this.taskCounts = { critical: 0, high: 0, medium: 0, low: 0 };
+        },
+      });
+    }
 
-    this.api.getAuditLogs({ limit: 10 }).subscribe({
-      next: (data) => {
-        this.auditLogs = (Array.isArray(data) ? data : data?.['data'] || []).slice(0, 10);
-      },
-      error: () => {
-        this.auditLogs = [];
-      },
-    });
+    if (this.perm.canGlobal('audit_log', 'read')) {
+      this.api.getAuditLogs({ limit: 10 }).subscribe({
+        next: (data) => {
+          this.auditLogs = (Array.isArray(data) ? data : data?.['data'] || []).slice(0, 10);
+        },
+        error: () => {
+          this.auditLogs = [];
+        },
+      });
+    }
 
-    this.api.getProjects().subscribe({
+    if (this.perm.canGlobal('project', 'read')) {
+      this.api.getProjects().subscribe({
       next: (projects) => {
         const all = projects || [];
         this.activeProjectCount = all.filter((p: any) => p.status === 'Active' || p.status === 'Planning' || p.status === 'OnHold').length;
@@ -297,6 +320,7 @@ export class CockpitComponent implements OnInit {
         this.topProjects = [];
       },
     });
+    } // end if canGlobal('project','read')
   }
 
   getScoreColor(score: number): string {

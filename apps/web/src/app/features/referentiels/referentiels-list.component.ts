@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
+import { PermissionService } from '../../core/services/permission.service';
 
 const REFERENTIEL_TYPES = ['ISO', 'NIST', 'OWASP', 'SOC2', 'CIS', 'Internal'];
 
@@ -44,7 +45,13 @@ const DOMAINS = [
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-brand font-bold text-white">Referentiels</h1>
-          <p class="text-xs text-zinc-500 mt-1">Compliance frameworks (ISO 27001, NIST CSF, SOC2, etc.)</p>
+          <p class="text-xs text-zinc-500 mt-1">Compliance frameworks (ISO 27001, NIST CSF, SOC2, etc.)
+            <a routerLink="/app/docs/module-referentiels"
+               class="inline-flex items-center gap-1 ml-3 text-zinc-600 hover:text-emerald-400 transition-colors">
+              <iconify-icon icon="solar:book-2-linear" width="12"></iconify-icon>
+              <span class="text-[10px]">Guide</span>
+            </a>
+          </p>
         </div>
         <div class="flex items-center gap-3">
           <button (click)="openCommunityModal()"
@@ -52,7 +59,7 @@ const DOMAINS = [
             <iconify-icon icon="solar:global-linear" width="16"></iconify-icon>
             Community
           </button>
-          <button (click)="showCreateModal = true"
+          <button *ngIf="perm.canGlobal('referentiel', 'create')" (click)="showCreateModal = true"
             class="px-4 py-2 bg-white text-black rounded-lg text-sm font-brand font-semibold hover:bg-zinc-200 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:add-circle-linear" width="16"></iconify-icon>
             New Referentiel
@@ -241,7 +248,7 @@ const DOMAINS = [
                     class="px-3 py-1.5 rounded-lg border border-emerald-800/50 bg-emerald-900/20 text-[11px] text-emerald-400 font-brand font-medium">
                     All Imported
                   </span>
-                  <button *ngIf="!cr.alreadyImported" (click)="importAllFromReferentiel(cr)"
+                  <button *ngIf="!cr.alreadyImported && perm.canGlobal('referentiel', 'create')" (click)="importAllFromReferentiel(cr)"
                     [disabled]="importingFolder === cr.folder"
                     class="px-3 py-1.5 rounded-lg bg-white text-[11px] text-black font-brand font-medium hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
                     <iconify-icon *ngIf="importingFolder === cr.folder" icon="solar:refresh-linear" width="12" class="animate-spin"></iconify-icon>
@@ -272,7 +279,7 @@ const DOMAINS = [
                       class="px-2 py-1 rounded border border-emerald-800/50 bg-emerald-900/20 text-[10px] text-emerald-400 font-medium">
                       Imported
                     </span>
-                    <button *ngIf="!cl.alreadyImported" (click)="importSingleChecklist(cr, cl)"
+                    <button *ngIf="!cl.alreadyImported && perm.canGlobal('checklist', 'create')" (click)="importSingleChecklist(cr, cl)"
                       [disabled]="importingChecklistKey === cr.folder + ':' + cl.index"
                       class="px-2 py-1 rounded-lg bg-blue-600 text-[10px] text-white font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
                       <iconify-icon *ngIf="importingChecklistKey === cr.folder + ':' + cl.index" icon="solar:refresh-linear" width="10" class="animate-spin"></iconify-icon>
@@ -309,7 +316,7 @@ export class ReferentielsListComponent implements OnInit {
   importingChecklistKey: string | null = null;
   expandedFolders: Record<string, boolean> = {};
 
-  constructor(private api: ApiService, private router: Router) {}
+  constructor(private api: ApiService, private router: Router, public perm: PermissionService) {}
 
   ngOnInit(): void {
     this.loadReferentiels();
