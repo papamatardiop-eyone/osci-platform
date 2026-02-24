@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { UserRoleAssignment } from './entities/user-role-assignment.entity';
@@ -224,6 +224,7 @@ export class RbacSeedService implements OnModuleInit {
     private readonly assignmentRepo: Repository<UserRoleAssignment>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly entityManager: EntityManager,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -270,6 +271,9 @@ export class RbacSeedService implements OnModuleInit {
 
     // Seed the realm admin user from env vars
     await this.seedRealmAdmin();
+
+    // Backfill creator ResourceAccess for existing resources
+    await this.backfillCreatorAccess();
 
     this.logger.log('RBAC seed complete');
   }
@@ -336,6 +340,65 @@ export class RbacSeedService implements OnModuleInit {
         createdById: user.id,
       });
       await this.assignmentRepo.save(assignment);
+    }
+  }
+
+  /**
+   * Backfill ResourceAccess entries for existing resources that have a creator
+   * but no corresponding ResourceAccess row. This is idempotent — it only
+   * inserts rows that don't already exist (ON CONFLICT DO NOTHING).
+   */
+  private async backfillCreatorAccess(): Promise<void> {
+    const allActions = ALL_ACTIONS.join(',');
+
+    const sources: Array<{
+      resourceType: ResourceType;
+      table: string;
+      creatorColumn: string;
+    }> = [
+      { resourceType: ResourceType.Project, table: 'security_projects', creatorColumn: 'createdById' },
+      { resourceType: ResourceType.Object, table: 'objects', creatorColumn: 'createdById' },
+      { resourceType: ResourceType.ObjectGroup, table: 'object_groups', creatorColumn: 'createdById' },
+      { resourceType: ResourceType.Checklist, table: 'checklists', creatorColumn: 'createdById' },
+      { resourceType: ResourceType.Task, table: 'tasks', creatorColumn: 'createdById' },
+      { resourceType: ResourceType.Incident, table: 'incidents', creatorColumn: 'createdById' },
+      { resourceType: ResourceType.Report, table: 'reports', creatorColumn: 'generatedById' },
+      { resourceType: ResourceType.Evidence, table: 'evidence', creatorColumn: 'uploadedById' },
+      { resourceType: ResourceType.CartographyAsset, table: 'assets', creatorColumn: 'createdById' },
+      { resourceType: ResourceType.Integration, table: 'integration_configs', creatorColumn: 'createdById' },
+    ];
+
+    let totalInserted = 0;
+
+    for (const src of sources) {
+      try {
+        const result = await this.entityManager.query(
+          `INSERT INTO "resource_access" ("id", "resourceType", "resourceId", "userId", "actions", "grantedById", "createdAt")
+           SELECT gen_random_uuid(), $1, r."id", r."${src.creatorColumn}", $2, r."${src.creatorColumn}", NOW()
+           FROM "${src.table}" r
+           WHERE r."${src.creatorColumn}" IS NOT NULL
+             AND NOT EXISTS (
+               SELECT 1 FROM "resource_access" ra
+               WHERE ra."resourceType" = $1
+                 AND ra."resourceId" = r."id"
+                 AND ra."userId" = r."${src.creatorColumn}"
+             )
+           ON CONFLICT ("resourceType", "resourceId", "userId") DO NOTHING`,
+          [src.resourceType, allActions],
+        );
+
+        const count = result?.[1] ?? 0;
+        if (count > 0) {
+          this.logger.log(`Backfilled ${count} creator access entries for ${src.resourceType}`);
+          totalInserted += count;
+        }
+      } catch (err: any) {
+        this.logger.warn(`Backfill skipped for ${src.resourceType}: ${err.message}`);
+      }
+    }
+
+    if (totalInserted > 0) {
+      this.logger.log(`Creator access backfill complete: ${totalInserted} entries created`);
     }
   }
 }

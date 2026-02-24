@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PolicyGuard } from '../../common/guards/policy.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { IncidentsService } from './incidents.service';
 import { CreateIncidentDto } from './dto/create-incident.dto';
 import { UpdateIncidentDto } from './dto/update-incident.dto';
@@ -26,15 +27,19 @@ export class IncidentsController {
 
   @Get()
   async findAll(
+    @CurrentUser() user: { userId: string },
     @Query('objectId') objectId?: string,
     @Query('groupId') groupId?: string,
   ): Promise<Incident[]> {
-    return this.incidentsService.findAll({ objectId, groupId });
+    return this.incidentsService.findAll(user.userId, { objectId, groupId });
   }
 
   @Post()
-  async create(@Body() dto: CreateIncidentDto): Promise<Incident> {
-    return this.incidentsService.create(dto);
+  async create(
+    @Body() dto: CreateIncidentDto,
+    @CurrentUser() user: { userId: string },
+  ): Promise<Incident> {
+    return this.incidentsService.create(dto, user.userId);
   }
 
   @Get(':id')

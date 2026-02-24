@@ -9,9 +9,10 @@ import {
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PolicyGuard } from '../../common/guards/policy.guard';
+import { PolicyGuard, RequirePermission } from '../../common/guards/policy.guard';
 import { AuditService } from './audit.service';
 import { AuditLog } from './entities/audit-log.entity';
+import { ResourceType, Action } from '../../common/enums';
 
 @ApiTags('audit-logs')
 @ApiBearerAuth()
@@ -61,6 +62,7 @@ export class AuditController {
   }
 
   @Get('export')
+  @RequirePermission({ type: ResourceType.AuditLog, action: Action.Export })
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="audit-logs.csv"')
   @ApiQuery({ name: 'actorId', required: false })

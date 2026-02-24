@@ -7,7 +7,9 @@ import { ChecklistRunItem } from '../checklists/entities/checklist-run-item.enti
 import { User } from '../users/entities/user.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { TaskStatus } from '../../common/enums';
+import { TaskStatus, ResourceType } from '../../common/enums';
+import { AuthorizationService } from '../rbac/authorization.service';
+import { ResourceAccessService } from '../rbac/resource-access.service';
 
 export interface UserSummary {
   id: string;
@@ -27,6 +29,8 @@ export class TasksService {
     private readonly checklistRunItemRepository: Repository<ChecklistRunItem>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly authorizationService: AuthorizationService,
+    private readonly resourceAccessService: ResourceAccessService,
   ) {}
 
   // --- User resolution helper ---
@@ -62,7 +66,7 @@ export class TasksService {
 
   // --- findAll with concernedUserId filter ---
 
-  async findAll(filters?: {
+  async findAll(userId: string, filters?: {
     status?: TaskStatus;
     assignedToId?: string;
     objectId?: string;
@@ -74,48 +78,47 @@ export class TasksService {
   }): Promise<any[]> {
     // If concernedUserId filter is set, use query builder for OR logic
     if (filters?.concernedUserId) {
-      return this.findAllConcerned(filters);
+      return this.findAllConcerned(userId, filters);
     }
 
-    const where: FindOptionsWhere<Task> = {};
+    // Visibility filtering
+    const accessibleIds = await this.authorizationService.getAccessibleResourceIds(userId, ResourceType.Task);
 
-    if (filters?.status) {
-      where.status = filters.status;
+    const qb = this.taskRepository
+      .createQueryBuilder('t')
+      .leftJoinAndSelect('t.object', 'object')
+      .leftJoinAndSelect('t.project', 'project')
+      .leftJoinAndSelect('t.children', 'children')
+      .orderBy('t.createdAt', 'DESC');
+
+    // Apply visibility filter
+    if (accessibleIds !== 'all') {
+      if (accessibleIds.length > 0) {
+        qb.andWhere('(t.id IN (:...accessibleIds) OR t.createdById = :userId)', { accessibleIds, userId });
+      } else {
+        qb.andWhere('t.createdById = :userId', { userId });
+      }
     }
-    if (filters?.assignedToId) {
-      where.assignedToId = filters.assignedToId;
-    }
-    if (filters?.objectId) {
-      where.objectId = filters.objectId;
-    }
-    if (filters?.projectId) {
-      where.projectId = filters.projectId;
-    }
-    if (filters?.parentTaskId) {
-      where.parentTaskId = filters.parentTaskId;
-    }
+
+    if (filters?.status) qb.andWhere('t.status = :status', { status: filters.status });
+    if (filters?.assignedToId) qb.andWhere('t.assignedToId = :assignedToId', { assignedToId: filters.assignedToId });
+    if (filters?.objectId) qb.andWhere('t.objectId = :objectId', { objectId: filters.objectId });
+    if (filters?.projectId) qb.andWhere('t.projectId = :projectId', { projectId: filters.projectId });
+    if (filters?.parentTaskId) qb.andWhere('t.parentTaskId = :parentTaskId', { parentTaskId: filters.parentTaskId });
     if (filters?.checklistId) {
-      const runItems = await this.checklistRunItemRepository
-        .createQueryBuilder('ri')
-        .innerJoin('ri.checklistRun', 'cr')
-        .where('cr.checklistId = :cid', { cid: filters.checklistId })
-        .select('ri.id')
-        .getMany();
-      const ids = runItems.map((r) => r.id);
-      if (ids.length === 0) return [];
-      where.checklistRunItemId = In(ids);
+      qb.andWhere(
+        `t.checklistRunItemId IN (SELECT ri.id FROM checklist_run_items ri INNER JOIN checklist_runs cr ON ri."checklistRunId" = cr.id WHERE cr."checklistId" = :checklistId)`,
+        { checklistId: filters.checklistId },
+      );
     }
     if (filters?.objectGroupId) {
-      const objectIds = await this.getObjectIdsByGroup(filters.objectGroupId);
-      if (objectIds.length === 0) return [];
-      where.objectId = In(objectIds);
+      qb.andWhere(
+        `t.objectId IN (SELECT gom."objectId" FROM object_group_members gom WHERE gom."groupId" = :objectGroupId)`,
+        { objectGroupId: filters.objectGroupId },
+      );
     }
 
-    const tasks = await this.taskRepository.find({
-      where,
-      relations: ['object', 'project', 'children'],
-      order: { createdAt: 'DESC' },
-    });
+    const tasks = await qb.getMany();
 
     const userIds = tasks.flatMap((t) => [t.assignedToId, t.leadId]).filter(Boolean) as string[];
     const userMap = await this.resolveUsers(userIds);
@@ -123,7 +126,7 @@ export class TasksService {
     return this.enrichTasks(tasks, userMap);
   }
 
-  private async findAllConcerned(filters: {
+  private async findAllConcerned(userId: string, filters: {
     status?: TaskStatus;
     assignedToId?: string;
     objectId?: string;
@@ -134,6 +137,10 @@ export class TasksService {
     concernedUserId?: string;
   }): Promise<any[]> {
     const cuid = filters.concernedUserId!;
+
+    // Visibility filtering
+    const accessibleIds = await this.authorizationService.getAccessibleResourceIds(userId, ResourceType.Task);
+
     const qb = this.taskRepository
       .createQueryBuilder('t')
       .leftJoinAndSelect('t.object', 'object')
@@ -144,6 +151,15 @@ export class TasksService {
         { cuid },
       )
       .orderBy('t.createdAt', 'DESC');
+
+    // Apply visibility filter
+    if (accessibleIds !== 'all') {
+      if (accessibleIds.length > 0) {
+        qb.andWhere('(t.id IN (:...accessibleIds) OR t.createdById = :visUserId)', { accessibleIds, visUserId: userId });
+      } else {
+        qb.andWhere('t.createdById = :visUserId', { visUserId: userId });
+      }
+    }
 
     if (filters.status) qb.andWhere('t.status = :status', { status: filters.status });
     if (filters.objectId) qb.andWhere('t.objectId = :objectId', { objectId: filters.objectId });
@@ -202,7 +218,7 @@ export class TasksService {
     };
   }
 
-  async create(dto: CreateTaskDto): Promise<any> {
+  async create(dto: CreateTaskDto, userId: string): Promise<any> {
     if (dto.assignedToId) await this.validateUserExists(dto.assignedToId, 'assignedToId');
     if (dto.leadId) await this.validateUserExists(dto.leadId, 'leadId');
 
@@ -217,8 +233,11 @@ export class TasksService {
       projectId: dto.projectId || null,
       parentTaskId: dto.parentTaskId || null,
       labels: dto.labels || null,
+      createdById: userId,
     });
     const saved = await this.taskRepository.save(task);
+
+    await this.resourceAccessService.createCreatorAccess(ResourceType.Task, saved.id, userId);
 
     const userMap = await this.resolveUsers([saved.assignedToId, saved.leadId].filter(Boolean) as string[]);
     return {

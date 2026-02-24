@@ -11,6 +11,9 @@ import * as Minio from 'minio';
 import { v4 as uuidv4 } from 'uuid';
 import { Evidence } from './entities/evidence.entity';
 import { Readable } from 'stream';
+import { ResourceType } from '../../common/enums';
+import { AuthorizationService } from '../rbac/authorization.service';
+import { ResourceAccessService } from '../rbac/resource-access.service';
 
 @Injectable()
 export class EvidenceService implements OnModuleInit {
@@ -22,6 +25,8 @@ export class EvidenceService implements OnModuleInit {
     @InjectRepository(Evidence)
     private readonly evidenceRepository: Repository<Evidence>,
     private readonly configService: ConfigService,
+    private readonly authorizationService: AuthorizationService,
+    private readonly resourceAccessService: ResourceAccessService,
   ) {
     this.bucketName = this.configService.get<string>(
       'MINIO_BUCKET',
@@ -92,10 +97,12 @@ export class EvidenceService implements OnModuleInit {
       metadata: metadata || null,
     });
 
-    return this.evidenceRepository.save(evidence);
+    const saved = await this.evidenceRepository.save(evidence);
+    await this.resourceAccessService.createCreatorAccess(ResourceType.Evidence, saved.id, uploadedById);
+    return saved;
   }
 
-  async findAll(filters?: {
+  async findAll(userId: string, filters?: {
     objectId?: string;
     search?: string;
     page?: number;
@@ -105,22 +112,33 @@ export class EvidenceService implements OnModuleInit {
     const limit = filters?.limit || 50;
     const skip = (page - 1) * limit;
 
-    const where: FindOptionsWhere<Evidence> = {};
+    // Visibility filtering
+    const accessibleIds = await this.authorizationService.getAccessibleResourceIds(userId, ResourceType.Evidence);
+
+    const qb = this.evidenceRepository
+      .createQueryBuilder('e')
+      .leftJoinAndSelect('e.object', 'object')
+      .orderBy('e.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    // Apply visibility filter
+    if (accessibleIds !== 'all') {
+      if (accessibleIds.length > 0) {
+        qb.andWhere('(e.id IN (:...accessibleIds) OR e.uploadedById = :userId)', { accessibleIds, userId });
+      } else {
+        qb.andWhere('e.uploadedById = :userId', { userId });
+      }
+    }
+
     if (filters?.objectId) {
-      where.objectId = filters.objectId;
+      qb.andWhere('e.objectId = :objectId', { objectId: filters.objectId });
     }
     if (filters?.search?.trim()) {
-      where.filename = ILike(`%${filters.search.trim()}%`);
+      qb.andWhere('e.filename ILIKE :search', { search: `%${filters.search.trim()}%` });
     }
 
-    const [data, total] = await this.evidenceRepository.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      relations: ['object'],
-      skip,
-      take: limit,
-    });
-
+    const [data, total] = await qb.getManyAndCount();
     return { data, total, page, limit };
   }
 

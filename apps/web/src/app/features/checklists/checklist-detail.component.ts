@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { ConfirmService } from '../../shared/components/confirm/confirm.service';
 import { PermissionService } from '../../core/services/permission.service';
+import { ResourceAccessPanelComponent } from '../../shared/components/resource-access-panel/resource-access-panel.component';
 
 @Component({
   selector: 'app-checklist-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, ResourceAccessPanelComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <div class="space-y-6" *ngIf="checklist">
@@ -46,7 +47,7 @@ import { PermissionService } from '../../core/services/permission.service';
             class="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-brand font-semibold hover:bg-emerald-600 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:play-linear" width="14"></iconify-icon>Start Run
           </button>
-          <button *ngIf="!isEditing && perm.canGlobal('checklist', 'update')" (click)="enterEditMode()"
+          <button *ngIf="!isEditing && perm.canResource('checklist', checklistId, 'update')" (click)="enterEditMode()"
             class="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-zinc-400 font-brand hover:bg-white/5 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>Edit
           </button>
@@ -56,7 +57,7 @@ import { PermissionService } from '../../core/services/permission.service';
           </button>
           <button *ngIf="isEditing" (click)="cancelEdit()"
             class="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-zinc-400 font-brand hover:bg-white/5 transition-colors">Cancel</button>
-          <button *ngIf="perm.canGlobal('checklist', 'delete')" (click)="deleteChecklist()"
+          <button *ngIf="perm.canResource('checklist', checklistId, 'delete')" (click)="deleteChecklist()"
             class="px-3 py-1.5 rounded-lg border border-rose-500/20 text-xs text-rose-500 font-brand hover:bg-rose-500/10 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>Delete
           </button>
@@ -187,7 +188,7 @@ import { PermissionService } from '../../core/services/permission.service';
                   Latest: {{ obj.latestScore | number:'1.0-0' }}%
                 </span>
               </div>
-              <button *ngIf="perm.canGlobal('checklist', 'update')" (click)="detachObject(obj.id)" title="Détacher cet objet"
+              <button *ngIf="perm.canResource('checklist', checklistId, 'update')" (click)="detachObject(obj.id)" title="Détacher cet objet"
                 class="p-1.5 rounded-lg border border-white/10 hover:bg-rose-500/10 hover:border-rose-500/20 transition-colors">
                 <iconify-icon icon="solar:link-broken-linear" width="14" class="text-zinc-500 hover:text-rose-500"></iconify-icon>
               </button>
@@ -206,7 +207,7 @@ import { PermissionService } from '../../core/services/permission.service';
               [ngClass]="showImportPanel ? 'text-blue-400' : 'text-blue-500/70 hover:text-blue-400'">
               <iconify-icon icon="solar:library-linear" width="12"></iconify-icon>Import from Reference
             </button>
-            <button *ngIf="perm.canGlobal('checklist', 'update')" (click)="addItem()"
+            <button *ngIf="perm.canResource('checklist', checklistId, 'update')" (click)="addItem()"
               class="text-[10px] text-emerald-500 hover:text-emerald-400 transition-colors flex items-center gap-1">
               <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>Add Item
             </button>
@@ -354,7 +355,7 @@ import { PermissionService } from '../../core/services/permission.service';
               </td>
               <td class="p-3 text-xs text-zinc-400">{{ item.expectedEvidence || '---' }}</td>
               <td *ngIf="isEditing" class="p-3 text-center">
-                <button *ngIf="perm.canGlobal('checklist', 'update')" (click)="removeItem(item, i)" class="p-1.5 rounded-lg hover:bg-rose-500/10 border border-rose-500/20 transition-colors inline-flex items-center">
+                <button *ngIf="perm.canResource('checklist', checklistId, 'update')" (click)="removeItem(item, i)" class="p-1.5 rounded-lg hover:bg-rose-500/10 border border-rose-500/20 transition-colors inline-flex items-center">
                   <iconify-icon icon="solar:trash-bin-trash-linear" width="14" class="text-rose-500"></iconify-icon>
                 </button>
               </td>
@@ -365,6 +366,13 @@ import { PermissionService } from '../../core/services/permission.service';
           </tbody>
         </table>
       </div>
+
+      <!-- Access Control Panel -->
+      <app-resource-access-panel
+        *ngIf="perm.canResource('checklist', checklistId, 'manage')"
+        [resourceType]="'checklist'"
+        [resourceId]="checklistId">
+      </app-resource-access-panel>
     </div>
 
     <!-- Run Modal -->
@@ -501,7 +509,7 @@ export class ChecklistDetailComponent implements OnInit {
   // Referentiels for item mapping
   referentielsForSelect: { id: string; name: string; controls: any[] }[] = [];
 
-  private checklistId = '';
+  checklistId = '';
   private pendingItemDeletions: string[] = [];
 
   constructor(

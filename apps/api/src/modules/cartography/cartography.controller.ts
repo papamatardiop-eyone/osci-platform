@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PolicyGuard } from '../../common/guards/policy.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CartographyService } from './cartography.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
@@ -29,13 +30,13 @@ export class CartographyController {
 
   // Topology
   @Get('topology')
-  async getTopologyGraph() {
-    return this.cartographyService.getTopologyGraph();
+  async getTopologyGraph(@CurrentUser() user: { userId: string }) {
+    return this.cartographyService.getTopologyGraph(user.userId);
   }
 
   @Get('topology/enriched')
-  async getEnrichedTopology() {
-    return this.cartographyService.getEnrichedTopology();
+  async getEnrichedTopology(@CurrentUser() user: { userId: string }) {
+    return this.cartographyService.getEnrichedTopology(user.userId);
   }
 
   @Get('impact/:assetId')
@@ -47,13 +48,16 @@ export class CartographyController {
 
   // Assets
   @Get('assets')
-  async findAllAssets(): Promise<Asset[]> {
-    return this.cartographyService.findAllAssets();
+  async findAllAssets(@CurrentUser() user: { userId: string }): Promise<Asset[]> {
+    return this.cartographyService.findAllAssets(user.userId);
   }
 
   @Post('assets')
-  async createAsset(@Body() dto: CreateAssetDto): Promise<Asset> {
-    return this.cartographyService.createAsset(dto);
+  async createAsset(
+    @Body() dto: CreateAssetDto,
+    @CurrentUser() user: { userId: string },
+  ): Promise<Asset> {
+    return this.cartographyService.createAsset(dto, user.userId);
   }
 
   @Get('assets/:id')
@@ -76,8 +80,8 @@ export class CartographyController {
 
   // Relations
   @Get('relations')
-  async findAllRelations(): Promise<Relation[]> {
-    return this.cartographyService.findAllRelations();
+  async findAllRelations(@CurrentUser() user: { userId: string }): Promise<Relation[]> {
+    return this.cartographyService.findAllRelations(user.userId);
   }
 
   @Post('relations')

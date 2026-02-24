@@ -6,11 +6,12 @@ import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ConfirmService } from '../../shared/components/confirm/confirm.service';
 import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-gauge.component';
+import { ResourceAccessPanelComponent } from '../../shared/components/resource-access-panel/resource-access-panel.component';
 
 @Component({
   selector: 'app-object-group-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, ScoreGaugeComponent],
+  imports: [CommonModule, RouterLink, FormsModule, ScoreGaugeComponent, ResourceAccessPanelComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <div class="space-y-6" *ngIf="group">
@@ -30,11 +31,11 @@ import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-g
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button *ngIf="perm.canGlobal('object_group', 'update')" (click)="isEditing = !isEditing"
+          <button *ngIf="perm.canResource('object_group', groupId, 'update')" (click)="isEditing = !isEditing"
             class="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-zinc-400 font-brand hover:bg-white/5 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>Edit
           </button>
-          <button *ngIf="perm.canGlobal('object_group', 'delete')" (click)="deleteGroup()"
+          <button *ngIf="perm.canResource('object_group', groupId, 'delete')" (click)="deleteGroup()"
             class="px-3 py-1.5 rounded-lg border border-rose-500/20 text-xs text-rose-500 font-brand hover:bg-rose-500/10 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>Delete
           </button>
@@ -118,7 +119,7 @@ import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-g
                 {{ getObjectScore(obj.id) !== null ? getObjectScore(obj.id) + '%' : '---' }}
               </td>
               <td class="p-3">
-                <button *ngIf="perm.canGlobal('object_group', 'update')" (click)="removeMember(obj.id)"
+                <button *ngIf="perm.canResource('object_group', groupId, 'update')" (click)="removeMember(obj.id)"
                   class="px-2 py-1 rounded-lg border border-rose-500/20 text-[10px] text-rose-500 font-brand hover:bg-rose-500/10 transition-colors">
                   Remove
                 </button>
@@ -135,7 +136,7 @@ import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-g
       </div>
 
       <!-- Add Members -->
-      <div class="glass-panel p-6" *ngIf="perm.canGlobal('object_group', 'update')">
+      <div class="glass-panel p-6" *ngIf="perm.canResource('object_group', groupId, 'update')">
         <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-4">Add Members</p>
 
         <div class="relative mb-4">
@@ -167,6 +168,13 @@ import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-g
           Add {{ selectedObjectIds.size }} object{{ selectedObjectIds.size > 1 ? 's' : '' }}
         </button>
       </div>
+
+      <!-- Access Control Panel -->
+      <app-resource-access-panel
+        *ngIf="perm.canResource('object_group', groupId, 'manage')"
+        [resourceType]="'object_group'"
+        [resourceId]="groupId">
+      </app-resource-access-panel>
     </div>
 
     <!-- Loading state -->
@@ -198,7 +206,7 @@ export class ObjectGroupDetailComponent implements OnInit {
   editData = { name: '', description: '' };
   loadError = false;
 
-  private groupId = '';
+  groupId = '';
 
   constructor(
     private route: ActivatedRoute,

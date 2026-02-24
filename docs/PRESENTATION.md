@@ -325,8 +325,11 @@ Le module Remédiation propose un Kanban visuel pour suivre et prioriser les act
 **Fonctionnalités :**
 
 - Glisser-déposer entre les colonnes
+- Assignation : choix de l'**assigné** et du **lead** via sélecteur d'utilisateur
+- **Concernés** : liste de personnes à jour dans le détail de chaque tâche
 - Filtrage par objet, projet, priorité ou assignation
-- Détail de chaque tâche : contrôle d'origine, objet, checklist
+- Filtre **« Mes tâches »** : afficher les tâches où l'utilisateur est assigné, lead ou concerné
+- Détail de chaque tâche : contrôle d'origine, objet, checklist, assigné, lead et concernés
 - Commentaires et suivi de discussion
 - Création manuelle de tâches
 
@@ -335,6 +338,8 @@ Le module Remédiation propose un Kanban visuel pour suivre et prioriser les act
 ### 7.6 Projets de sécurité
 
 Un projet de sécurité regroupe des objets et checklists autour d'un périmètre défini.
+
+**Lead et concernés :** Chaque projet a un **lead** (Owner), modifiable depuis le détail du projet. La **liste des concernés** est gérable (ajout/suppression) depuis le détail du projet.
 
 **Statuts d'un projet :**
 
@@ -354,6 +359,7 @@ Un projet de sécurité regroupe des objets et checklists autour d'un périmètr
 - **Historique des runs** — Évolution du score dans le temps
 - **Jalons** (Milestones) — Points de passage et dates clés
 - **Tâches liées** — Vue consolidée des tâches de remédiation du périmètre
+- **Filtre « Projets où je suis concerné »** — Limiter la liste aux projets dont vous êtes le lead ou un concerné
 
 ---
 
@@ -826,6 +832,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 - **Un projet = un périmètre clair** — Créez un projet par initiative, système ou domaine fonctionnel
 - **Nommez explicitement** — Ex. "Audit SI Finance Q1 2025" plutôt que "Projet 1"
 - **Associez tous les objets concernés** — Un projet complet donne un score représentatif
+- **Désignez un lead et des concernés** — Indiquez clairement le responsable (owner) et les personnes à informer pour chaque projet
 
 ### Nommer les objets
 
@@ -849,6 +856,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 - Traitez les tâches dans l'ordre de priorité
 - Ne laissez pas les tâches s'accumuler sans suivi
+- **Assignez et suivez** — Utilisez le sélecteur d'utilisateur pour assigner les tâches et définir un lead ; ajoutez les concernés pour la visibilité
 - Relancez un run après correction pour vérifier la conformité
 - Utilisez le Kanban comme outil de pilotage lors des réunions d'équipe
 
@@ -869,8 +877,13 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 ## 15. Glossaire
 
+Pour les définitions complètes, consultez le [glossaire](glossary). Résumé des termes liés à l'assignation :
+
 | Terme | Définition |
 |-------|------------|
+| **Assigné (tâche)** | Utilisateur responsable de l'exécution d'une tâche de remédiation. Une tâche a au plus un assigné (User.id). |
+| **Concernés** | Liste de personnes impliquées ou à informer sur un projet ou une tâche ; visibles dans les filtres « Mes tâches » et « Projets où je suis concerné ». |
+| **Lead** | Responsable du suivi d'un projet ou d'une tâche. Pour un projet = Owner (ownerId) ; pour une tâche (leadId) peut être distinct de l'assigné. |
 | **Action** | Opération autorisée sur un type de ressource : `read`, `create`, `update`, `delete`, `export`, `manage` |
 | **Checklist** | Liste de contrôles de sécurité à vérifier sur un ou plusieurs objets |
 | **Cockpit** | Tableau de bord principal affichant les indicateurs globaux de sécurité |

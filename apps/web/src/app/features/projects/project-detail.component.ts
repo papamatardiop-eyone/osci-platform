@@ -6,11 +6,12 @@ import { ApiService } from '../../core/services/api.service';
 import { ConfirmService } from '../../shared/components/confirm/confirm.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { UserPickerComponent } from '../../shared/components/user-picker/user-picker.component';
+import { ResourceAccessPanelComponent } from '../../shared/components/resource-access-panel/resource-access-panel.component';
 
 @Component({
   selector: 'app-project-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, UserPickerComponent],
+  imports: [CommonModule, RouterLink, FormsModule, UserPickerComponent, ResourceAccessPanelComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <div class="space-y-6" *ngIf="project">
@@ -73,11 +74,11 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
               <button (click)="editing = false"
                 class="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-zinc-400 font-brand hover:bg-white/5 transition-colors">Cancel</button>
             </div>
-            <button *ngIf="!editing && perm.canGlobal('project', 'update')" (click)="startEdit()"
+            <button *ngIf="!editing && perm.canResource('project', projectId, 'update')" (click)="startEdit()"
               class="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-zinc-400 font-brand hover:bg-white/5 transition-colors flex items-center gap-1">
               <iconify-icon icon="solar:pen-linear" width="12"></iconify-icon>Edit
             </button>
-            <button *ngIf="!editing && perm.canGlobal('project', 'delete')" (click)="deleteProject()"
+            <button *ngIf="!editing && perm.canResource('project', projectId, 'delete')" (click)="deleteProject()"
               class="px-3 py-1.5 rounded-lg border border-rose-500/20 text-xs text-rose-500 font-brand hover:bg-rose-500/10 transition-colors flex items-center gap-1">
               <iconify-icon icon="solar:trash-bin-2-linear" width="12"></iconify-icon>Delete
             </button>
@@ -118,7 +119,7 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
         <div class="col-span-12 lg:col-span-8 glass-panel p-6">
           <div class="flex items-center justify-between mb-4">
             <p class="text-[10px] uppercase tracking-wider text-zinc-500">Milestones</p>
-            <button *ngIf="perm.canGlobal('project', 'update')" (click)="showMilestoneForm = !showMilestoneForm"
+            <button *ngIf="perm.canResource('project', projectId, 'update')" (click)="showMilestoneForm = !showMilestoneForm"
               class="px-2 py-1 rounded-lg border border-white/10 text-[10px] text-zinc-400 font-brand hover:bg-white/5 transition-colors flex items-center gap-1">
               <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>Add
             </button>
@@ -143,7 +144,7 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
             <div *ngFor="let m of milestones; let i = index"
               class="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
               <div class="flex items-center gap-3">
-                <button (click)="toggleMilestoneStatus(m)" [disabled]="!perm.canGlobal('project', 'update')"
+                <button (click)="toggleMilestoneStatus(m)" [disabled]="!perm.canResource('project', projectId, 'update')"
                   class="w-5 h-5 rounded border flex items-center justify-center transition-colors"
                   [ngClass]="m.status === 'Completed' ? 'bg-emerald-500/20 border-emerald-500/30' : 'border-white/10 hover:border-white/20'">
                   <iconify-icon *ngIf="m.status === 'Completed'" icon="solar:check-read-linear" width="12" class="text-emerald-500"></iconify-icon>
@@ -160,7 +161,7 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
                     'bg-blue-500/10 text-blue-500': m.status === 'InProgress',
                     'bg-emerald-500/10 text-emerald-500': m.status === 'Completed'
                   }">{{ m.status }}</span>
-                <button *ngIf="perm.canGlobal('project', 'update')" (click)="deleteMilestone(m.id)"
+                <button *ngIf="perm.canResource('project', projectId, 'update')" (click)="deleteMilestone(m.id)"
                   class="p-1 rounded hover:bg-white/5 transition-colors">
                   <iconify-icon icon="solar:trash-bin-2-linear" width="12" class="text-zinc-600 hover:text-rose-500"></iconify-icon>
                 </button>
@@ -177,7 +178,7 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
       <div class="glass-panel p-6">
         <div class="flex items-center justify-between mb-4">
           <p class="text-[10px] uppercase tracking-wider text-zinc-500">Concerned People</p>
-          <button *ngIf="perm.canGlobal('project', 'update')" (click)="showConcernedPicker = !showConcernedPicker"
+          <button *ngIf="perm.canResource('project', projectId, 'update')" (click)="showConcernedPicker = !showConcernedPicker"
             class="px-2 py-1 rounded-lg border border-white/10 text-[10px] text-zinc-400 font-brand hover:bg-white/5 transition-colors flex items-center gap-1">
             <iconify-icon icon="solar:add-circle-linear" width="12"></iconify-icon>Add
           </button>
@@ -208,7 +209,7 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
                 <p class="text-[10px] text-zinc-600">{{ c.email }}</p>
               </div>
             </div>
-            <button *ngIf="perm.canGlobal('project', 'update')" (click)="removeConcerned(c.id)"
+            <button *ngIf="perm.canResource('project', projectId, 'update')" (click)="removeConcerned(c.id)"
               class="p-1 rounded hover:bg-white/5 transition-colors">
               <iconify-icon icon="solar:close-circle-linear" width="14" class="text-zinc-600 hover:text-rose-500"></iconify-icon>
             </button>
@@ -300,7 +301,7 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
                   <td class="py-2.5 text-xs text-zinc-500">{{ formatUser(task.lead) }}</td>
                   <td class="py-2.5 text-xs text-zinc-500 font-mono">{{ task.slaDue | date:'MM/dd' }}</td>
                   <td class="py-2.5 text-right">
-                    <button *ngIf="perm.canGlobal('task', 'delete')" (click)="deleteTask(task.id)"
+                    <button *ngIf="perm.canGlobal('task', 'delete') || perm.canResource('project', projectId, 'update')" (click)="deleteTask(task.id)"
                       class="p-1 rounded hover:bg-white/5 transition-colors">
                       <iconify-icon icon="solar:trash-bin-2-linear" width="12" class="text-zinc-600 hover:text-rose-500"></iconify-icon>
                     </button>
@@ -333,7 +334,7 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
                   <td class="py-2 text-xs text-zinc-500">{{ formatUser(child.lead) }}</td>
                   <td class="py-2 text-xs text-zinc-500 font-mono">{{ child.slaDue | date:'MM/dd' }}</td>
                   <td class="py-2 text-right">
-                    <button *ngIf="perm.canGlobal('task', 'delete')" (click)="deleteTask(child.id)"
+                    <button *ngIf="perm.canGlobal('task', 'delete') || perm.canResource('project', projectId, 'update')" (click)="deleteTask(child.id)"
                       class="p-1 rounded hover:bg-white/5 transition-colors">
                       <iconify-icon icon="solar:trash-bin-2-linear" width="10" class="text-zinc-600 hover:text-rose-500"></iconify-icon>
                     </button>
@@ -347,6 +348,13 @@ import { UserPickerComponent } from '../../shared/components/user-picker/user-pi
           </table>
         </div>
       </div>
+
+      <!-- Access Control Panel -->
+      <app-resource-access-panel
+        *ngIf="perm.canResource('project', projectId, 'manage')"
+        [resourceType]="'project'"
+        [resourceId]="projectId">
+      </app-resource-access-panel>
     </div>
   `,
 })

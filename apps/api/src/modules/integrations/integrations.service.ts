@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { IntegrationConfig } from './entities/integration-config.entity';
 import { CreateIntegrationDto } from './dto/create-integration.dto';
 import { UpdateIntegrationDto } from './dto/update-integration.dto';
+import { ResourceType } from '../../common/enums';
+import { AuthorizationService } from '../rbac/authorization.service';
+import { ResourceAccessService } from '../rbac/resource-access.service';
 
 @Injectable()
 export class IntegrationsService {
@@ -12,12 +15,30 @@ export class IntegrationsService {
   constructor(
     @InjectRepository(IntegrationConfig)
     private readonly integrationRepository: Repository<IntegrationConfig>,
+    private readonly authorizationService: AuthorizationService,
+    private readonly resourceAccessService: ResourceAccessService,
   ) {}
 
-  async findAll(): Promise<IntegrationConfig[]> {
-    return this.integrationRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+  async findAll(userId: string): Promise<IntegrationConfig[]> {
+    const accessibleIds = await this.authorizationService.getAccessibleResourceIds(userId, ResourceType.Integration);
+
+    if (accessibleIds === 'all') {
+      return this.integrationRepository.find({
+        order: { createdAt: 'DESC' },
+      });
+    }
+
+    const qb = this.integrationRepository
+      .createQueryBuilder('i')
+      .orderBy('i.createdAt', 'DESC');
+
+    if (accessibleIds.length > 0) {
+      qb.where('(i.id IN (:...accessibleIds) OR i.createdById = :userId)', { accessibleIds, userId });
+    } else {
+      qb.where('i.createdById = :userId', { userId });
+    }
+
+    return qb.getMany();
   }
 
   async findOne(id: string): Promise<IntegrationConfig> {
@@ -30,14 +51,17 @@ export class IntegrationsService {
     return integration;
   }
 
-  async create(dto: CreateIntegrationDto): Promise<IntegrationConfig> {
+  async create(dto: CreateIntegrationDto, userId: string): Promise<IntegrationConfig> {
     const integration = this.integrationRepository.create({
       type: dto.type,
       name: dto.name,
       config: dto.config,
       enabled: dto.enabled !== undefined ? dto.enabled : true,
+      createdById: userId,
     });
-    return this.integrationRepository.save(integration);
+    const saved = await this.integrationRepository.save(integration);
+    await this.resourceAccessService.createCreatorAccess(ResourceType.Integration, saved.id, userId);
+    return saved;
   }
 
   async update(

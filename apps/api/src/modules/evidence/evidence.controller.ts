@@ -44,11 +44,11 @@ export class EvidenceController {
   async upload(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateEvidenceDto,
-    @CurrentUser() user: { sub: string },
+    @CurrentUser() user: { userId: string },
   ): Promise<Evidence> {
     return this.evidenceService.upload(
       file,
-      user.sub,
+      user.userId,
       dto.objectId,
       dto.checklistRunItemId,
       dto.metadata,
@@ -61,12 +61,13 @@ export class EvidenceController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async findAll(
+    @CurrentUser() user: { userId: string },
     @Query('objectId') objectId?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ): Promise<{ data: Evidence[]; total: number; page: number; limit: number }> {
-    return this.evidenceService.findAll({
+    return this.evidenceService.findAll(user.userId, {
       objectId,
       search,
       page: page ? parseInt(page, 10) : undefined,

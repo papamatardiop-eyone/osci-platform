@@ -8,6 +8,9 @@ import { ChecklistRun } from '../checklists/entities/checklist-run.entity';
 import { Incident } from '../incidents/entities/incident.entity';
 import { Task } from '../tasks/entities/task.entity';
 import { ReferentielsService } from '../referentiels/referentiels.service';
+import { ResourceType } from '../../common/enums';
+import { AuthorizationService } from '../rbac/authorization.service';
+import { ResourceAccessService } from '../rbac/resource-access.service';
 
 @Injectable()
 export class ReportingService {
@@ -23,10 +26,28 @@ export class ReportingService {
     @InjectRepository(Task)
     private readonly taskRepository: Repository<Task>,
     private readonly referentielsService: ReferentielsService,
+    private readonly authorizationService: AuthorizationService,
+    private readonly resourceAccessService: ResourceAccessService,
   ) {}
 
-  async findAll(): Promise<Report[]> {
-    return this.reportRepository.find({ order: { createdAt: 'DESC' } });
+  async findAll(userId: string): Promise<Report[]> {
+    const accessibleIds = await this.authorizationService.getAccessibleResourceIds(userId, ResourceType.Report);
+
+    if (accessibleIds === 'all') {
+      return this.reportRepository.find({ order: { createdAt: 'DESC' } });
+    }
+
+    const qb = this.reportRepository
+      .createQueryBuilder('r')
+      .orderBy('r.createdAt', 'DESC');
+
+    if (accessibleIds.length > 0) {
+      qb.where('(r.id IN (:...accessibleIds) OR r.generatedById = :userId)', { accessibleIds, userId });
+    } else {
+      qb.where('r.generatedById = :userId', { userId });
+    }
+
+    return qb.getMany();
   }
 
   async findOne(id: string): Promise<Report> {
@@ -66,7 +87,9 @@ export class ReportingService {
       generatedById,
     });
 
-    return this.reportRepository.save(report);
+    const saved = await this.reportRepository.save(report);
+    await this.resourceAccessService.createCreatorAccess(ResourceType.Report, saved.id, generatedById);
+    return saved;
   }
 
   private async generateAuditReport(

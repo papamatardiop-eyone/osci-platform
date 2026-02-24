@@ -69,6 +69,9 @@ export class Task {
   @Column({ type: 'simple-array', nullable: true })
   labels!: string[] | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  createdById!: string | null;
+
   @OneToMany(() => TaskComment, (c) => c.task)
   comments!: TaskComment[];
 

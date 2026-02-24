@@ -7,6 +7,7 @@ Ce document rassemble les recommandations d'usage pour tirer le meilleur parti d
 - **Un projet = un périmètre clair** — Créez un projet par initiative, système ou domaine fonctionnel
 - **Nommez explicitement** — Utilisez des noms descriptifs qui identifient sans ambiguïté le périmètre (ex. "Audit SI Finance Q1 2025")
 - **Associez tous les objets concernés** — Un projet complet donne un score représentatif
+- **Définir le lead et les concernés** — Pour chaque projet, renseignez le propriétaire (lead) et ajoutez les personnes concernées (équipe, observateurs). Cela permet d'utiliser le filtre « Projets où je suis concerné » et améliore la visibilité.
 
 ## Bien nommer les objets
 
@@ -30,6 +31,7 @@ Ce document rassemble les recommandations d'usage pour tirer le meilleur parti d
 
 - Traitez les tâches de remédiation dans l'ordre de priorité
 - Ne laissez pas les tâches s'accumuler sans suivi
+- **Assigner clairement** — Utilisez le sélecteur d'utilisateur pour assigner chaque tâche à un exécutant et, si besoin, à un lead. Ajoutez les concernés pour que les parties prenantes voient la tâche dans « Mes tâches ».
 - Relancez un run après correction pour vérifier la conformité
 - Utilisez le Kanban comme outil de pilotage lors des réunions d'équipe
 
