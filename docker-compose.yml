@@ -20,7 +20,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - osci_postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
@@ -52,8 +52,6 @@ services:
       KC_HOSTNAME: ${KEYCLOAK_URL}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    ports:
-      - "8080:8080"
     volumes:
       - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/osci-realm.json:ro      
     depends_on:
@@ -117,9 +115,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - minio_data:/data
-    ports:
-      - "9001:9001"
+      - osci_minio_data:/data
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
@@ -160,8 +156,6 @@ services:
       API_CORS_ORIGIN: ${API_CORS_ORIGIN}
       TRUST_PROXY: ${TRUST_PROXY}
       EXPOSE_ERROR_DETAILS: ${EXPOSE_ERROR_DETAILS:-false}
-    ports:
-      - "${API_PORT}:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -193,8 +187,6 @@ services:
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       API_URL: ${API_URL}
-    ports:
-      - "80:80"
     depends_on:
       api:
         condition: service_healthy
@@ -207,9 +199,9 @@ services:
 # Volumes
 # =============================================================================
 volumes:
-  postgres_data:
+  osci_postgres_data:
     driver: local
-  minio_data:
+  osci_minio_data:
     driver: local
 
 # =============================================================================
