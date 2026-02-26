@@ -55,7 +55,9 @@ Les référentiels communautaires proviennent du dépôt [zlorgoncho1/osci-refer
 1. Rendez-vous dans **Projects** depuis la barre latérale
 2. Cliquez sur **New Project**
 3. Renseignez le nom, la description et le périmètre
-4. Validez la création
+4. Choisissez le **lead** (Owner) du projet dans la liste des utilisateurs
+5. Validez la création
+6. Optionnellement, ajoutez des **concernés** depuis le détail du projet après création
 
 ## Ajouter des objets
 

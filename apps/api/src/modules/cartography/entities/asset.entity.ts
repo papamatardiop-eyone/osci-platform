@@ -37,6 +37,9 @@ export class Asset {
   @Column({ type: 'json', nullable: true })
   metadata!: Record<string, unknown> | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  createdById!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

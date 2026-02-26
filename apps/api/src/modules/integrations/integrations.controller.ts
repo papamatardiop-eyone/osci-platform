@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PolicyGuard } from '../../common/guards/policy.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { IntegrationsService } from './integrations.service';
 import { CreateIntegrationDto } from './dto/create-integration.dto';
 import { UpdateIntegrationDto } from './dto/update-integration.dto';
@@ -25,15 +26,16 @@ export class IntegrationsController {
   constructor(private readonly integrationsService: IntegrationsService) {}
 
   @Get()
-  async findAll(): Promise<IntegrationConfig[]> {
-    return this.integrationsService.findAll();
+  async findAll(@CurrentUser() user: { userId: string }): Promise<IntegrationConfig[]> {
+    return this.integrationsService.findAll(user.userId);
   }
 
   @Post()
   async create(
     @Body() dto: CreateIntegrationDto,
+    @CurrentUser() user: { userId: string },
   ): Promise<IntegrationConfig> {
-    return this.integrationsService.create(dto);
+    return this.integrationsService.create(dto, user.userId);
   }
 
   @Get(':id')

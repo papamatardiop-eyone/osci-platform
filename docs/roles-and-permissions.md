@@ -10,9 +10,9 @@ Chaque rôle porte un ensemble de permissions globales (type de ressource + acti
 |------|-------------|-----------|
 | SecurityAdmin | Administrateur complet | Toutes les permissions sur toutes les ressources, y compris la gestion des utilisateurs et des groupes |
 | SecurityManager | Gestionnaire sécurité | Création, modification et suivi des projets, objets, checklists, référentiels et rapports |
-| ProjectOwner | Propriétaire de projet | Gestion complète des projets dont il est propriétaire et des objets associés |
+| ProjectOwner | Propriétaire de projet | Gestion complète des projets dont il est propriétaire (lead/owner) ou auxquels il est assigné comme owner ; peut gérer les concernés de ces projets |
 | Auditor | Auditeur | Lecture seule sur les projets, objets, checklists, runs, preuves et journal d'audit |
-| Developer | Développeur | Lecture et exécution sur les checklists, objets et tâches de remédiation dans son périmètre |
+| Developer | Développeur | Lecture et exécution sur les checklists, objets et tâches dans son périmètre ; peut voir et traiter les tâches où il est assigné, lead ou concerné |
 | Viewer | Observateur | Lecture seule sur les ressources auxquelles il a accès |
 
 ## Types de ressources
@@ -52,6 +52,27 @@ Chaque permission autorise une ou plusieurs actions :
 | `export` | Exporter les données de la ressource |
 | `manage` | Administration complète (inclut toutes les actions) |
 
+### Hiérarchie implicite des actions
+
+Les actions suivent une hiérarchie : accorder une action de niveau supérieur accorde automatiquement les actions qu'elle implique, sans avoir à les cocher explicitement.
+
+```
+manage  →  read, create, update, delete, export
+create  →  read
+update  →  read
+delete  →  read
+export  →  read
+read    →  (aucune)
+```
+
+**Exemples concrets :**
+
+- Accorder `update` sur un projet → l'utilisateur **voit** le projet dans la liste et peut le modifier, mais ne peut ni le supprimer ni l'exporter
+- Accorder `manage` sur un objet → l'utilisateur dispose de toutes les actions sur cet objet, y compris la gestion des accès
+- Accorder `export` sur un rapport → l'utilisateur peut le consulter et le télécharger, mais pas le modifier ni le supprimer
+
+Cette hiérarchie s'applique à **tous les niveaux** de permission : rôles globaux, permissions directes, permissions de groupe et accès par ressource (ResourceAccess).
+
 ## Permissions directes
 
 En plus des rôles, des permissions peuvent être attribuées **directement à un utilisateur** sur un type de ressource. Cela permet de gérer des cas particuliers sans créer de rôle dédié.
@@ -90,6 +111,54 @@ Les **permissions effectives** d'un utilisateur sont l'union de toutes ses sourc
 
 Le système évalue ces sources dans l'ordre et accorde l'accès dès qu'une source l'autorise. Un SecurityAdmin dispose de toutes les permissions sans restriction.
 
+Être listé comme **concerné** sur un projet ou une tâche n'accorde pas de permission en soi ; les droits restent ceux définis par les rôles et l'accès ressource. En revanche, les concernés peuvent utiliser les filtres « Mes tâches » et « Projets où je suis concerné » pour retrouver ces éléments.
+
+## Visibilité par ressource (instance-level)
+
+La visibilité par ressource s'applique à **tous** les types "par instance" :
+
+| Type | Champ créateur | Filtrage liste | Accès Panel |
+|------|---------------|----------------|-------------|
+| `project` | `createdById` | Oui | Oui |
+| `object` | `createdById` | Oui | Oui |
+| `object_group` | `createdById` | Oui | Oui |
+| `checklist` | `createdById` | Oui | Oui |
+| `task` | `createdById` | Oui | Oui |
+| `incident` | `createdById` | Oui | Non |
+| `report` | `generatedById` | Oui | Non |
+| `evidence` | `uploadedById` | Oui | Non |
+| `cartography_asset` | `createdById` | Oui | Non |
+| `integration` | `createdById` | Oui | Non |
+
+### Règle de visibilité
+
+Les listes ne retournent que les entrées pour lesquelles l'utilisateur a au moins `read` (directement ou par hiérarchie implicite — par exemple un accès `update` suffit puisqu'il implique `read`) :
+- Via un **rôle global** (toutes les instances sont visibles)
+- Via un **ResourceAccess** explicite sur l'instance (toute action accorde la visibilité grâce à la hiérarchie)
+- En tant que **créateur** de l'instance (champ `createdById`, `uploadedById` ou `generatedById`)
+
+### Gestion des accès
+
+L'utilisateur peut gérer les accès sur une ressource s'il dispose de la permission `manage` :
+- Via le rôle **SecurityAdmin** (manage sur tout)
+- Via un **ResourceAccess** avec l'action `manage`
+- En tant que **créateur** de la ressource (accès complet implicite)
+
+Le panneau "Access Control" (ResourceAccessPanel) s'affiche sur les pages de détail lorsque l'utilisateur a `manage` sur l'instance.
+
+### Action Export
+
+Les routes d'export (audit CSV, téléchargement de rapport) requièrent explicitement l'action **export** :
+- `GET /audit-logs/export` → `RequirePermission(audit_log, export)`
+- `GET /reports/:id/download` → `RequirePermission(report, export)`
+- Les rôles **SecurityAdmin**, **SecurityManager** et **Auditor** disposent de cette permission.
+
+### Identifiant utilisateur
+
+Toutes les clés étrangères liées au créateur (createdById, uploadedById, generatedById, grantedById) utilisent **user.userId** (ID interne dans la base User) et non `user.sub` (identifiant Keycloak).
+
 ## Visibilité dans l'interface
 
 La barre latérale filtre automatiquement les modules affichés en fonction des permissions effectives de l'utilisateur. Un utilisateur ne voit que les sections auxquelles il a accès en lecture.
+
+Les pages de détail utilisent `canResource(resourceType, resourceId, action)` pour afficher les boutons d'action (Modifier, Supprimer, Gérer les accès) selon les permissions sur l'instance spécifique, et non plus uniquement les permissions globales.

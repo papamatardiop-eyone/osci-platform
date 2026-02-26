@@ -43,6 +43,9 @@ export class Incident {
   @Column({ type: 'timestamp', nullable: true })
   resolvedAt!: Date | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  createdById!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

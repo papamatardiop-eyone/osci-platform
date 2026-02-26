@@ -5,10 +5,12 @@ Définitions des termes clés utilisés dans OSCI.
 | Terme | Définition |
 |-------|------------|
 | **Action** | Opération autorisée sur un type de ressource : `read`, `create`, `update`, `delete`, `export`, `manage` |
+| **Assigné (tâche)** | Utilisateur responsable de l'exécution d'une tâche de remédiation. Une tâche a au plus un assigné. L'identifiant utilisé est l'UUID interne de l'utilisateur (User.id). |
 | **Authentification locale** | Mode de connexion par email et mot de passe, utilisant des tokens JWT signés avec `API_JWT_SECRET`. Tokens d'accès valables 15 minutes, refresh tokens valables 7 jours |
 | **Authentification SSO** | Mode de connexion via Keycloak (OIDC) avec le flux Authorization Code + PKCE. Support du MFA (TOTP) |
 | **Checklist** | Liste de contrôles de sécurité à vérifier sur un ou plusieurs objets |
 | **Checklist de référence** | Template de checklist associé à un référentiel, importable depuis la bibliothèque communautaire. Contient des items pré-mappés aux contrôles du référentiel |
+| **Concernés** | Liste de personnes impliquées ou à informer sur un projet ou une tâche. Les concernés peuvent voir la ressource (selon leurs permissions) et apparaissent dans les filtres "Mes tâches" ou "Projets où je suis concerné". |
 | **Contrôle** | Point de vérification de sécurité issu d'un référentiel (ex. "Le chiffrement TLS est activé") |
 | **controlCode** | Champ d'un item de checklist qui établit le lien avec un contrôle de framework du référentiel (ex. `A.5.12`). Permet le calcul automatique du taux de couverture |
 | **Evidence (Preuve)** | Document, fichier ou lien attaché à un contrôle lors d'un run pour démontrer la conformité |
@@ -16,6 +18,7 @@ Définitions des termes clés utilisés dans OSCI.
 | **Groupe d'utilisateurs** | Regroupement d'utilisateurs partageant des rôles et permissions communs. Les membres héritent automatiquement des habilitations du groupe |
 | **Objet** | Élément du système d'information soumis à des contrôles (serveur, application, dépôt, identité, etc.) |
 | **Groupe d'objets** | Regroupement logique d'objets pour faciliter la gestion et les contrôles collectifs |
+| **Lead** | Responsable du suivi d'un projet ou d'une tâche. Pour un projet, le lead correspond au champ "Owner" (ownerId). Pour une tâche, le lead (leadId) peut être distinct de l'assigné. Une seule personne par ressource. |
 | **Permission directe** | Permission attribuée individuellement à un utilisateur sur un type de ressource, indépendamment des rôles et des groupes |
 | **Permissions effectives** | Ensemble des permissions dont dispose un utilisateur, calculé par union de ses rôles directs, rôles hérités des groupes, permissions des groupes, permissions directes et accès par ressource |
 | **Projet de sécurité** | Périmètre regroupant des objets et checklists pour un suivi consolidé |
@@ -27,3 +30,4 @@ Définitions des termes clés utilisés dans OSCI.
 | **Security Integrity Score** | Indicateur de conformité calculé à partir des résultats des runs, reflétant le niveau de sécurité d'un objet ou projet |
 | **Tâche de remédiation** | Action corrective générée lorsqu'un contrôle est identifié comme non conforme lors d'un run |
 | **Taux de couverture** | Pourcentage de contrôles d'un référentiel effectivement évalués dans des checklists (contrôles mappés / total des contrôles). Visible dans le détail d'un référentiel |
+| **User.id** | Identifiant UUID interne de l'utilisateur dans OSCI, utilisé pour l'assignation (owner, assigné, lead, concernés) et pour les accès par ressource. Distinct du subject OIDC (Keycloak) qui peut être utilisé côté authentification. |

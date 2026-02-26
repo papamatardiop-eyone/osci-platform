@@ -3,6 +3,8 @@ import { TasksController } from '../tasks.controller';
 import { TasksService } from '../tasks.service';
 import { TaskCommentsService } from '../task-comments.service';
 import { TaskStatus, Criticality } from '../../../common/enums';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { PolicyGuard } from '../../../common/guards/policy.guard';
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -29,7 +31,10 @@ describe('TasksController', () => {
         { provide: TasksService, useValue: tasksService },
         { provide: TaskCommentsService, useValue: commentsService },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
+      .overrideGuard(PolicyGuard).useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TasksController>(TasksController);
   });
@@ -44,25 +49,33 @@ describe('TasksController', () => {
   describe('findAll', () => {
     it('should pass all query params to service', async () => {
       tasksService.findAll!.mockResolvedValue([]);
-      await controller.findAll(TaskStatus.InProgress, 'user-1', 'obj-1', 'proj-1', 'parent-1');
-      expect(tasksService.findAll).toHaveBeenCalledWith({
+      const user = { userId: 'caller-1' };
+      await controller.findAll(user, TaskStatus.InProgress, 'user-1', 'obj-1', 'proj-1', 'parent-1');
+      expect(tasksService.findAll).toHaveBeenCalledWith('caller-1', {
         status: TaskStatus.InProgress,
         assignedToId: 'user-1',
         objectId: 'obj-1',
         projectId: 'proj-1',
         parentTaskId: 'parent-1',
+        checklistId: undefined,
+        objectGroupId: undefined,
+        concernedUserId: undefined,
       });
     });
 
     it('should handle undefined filters', async () => {
       tasksService.findAll!.mockResolvedValue([]);
-      await controller.findAll(undefined, undefined, undefined, undefined, undefined);
-      expect(tasksService.findAll).toHaveBeenCalledWith({
+      const user = { userId: 'caller-1' };
+      await controller.findAll(user, undefined, undefined, undefined, undefined, undefined);
+      expect(tasksService.findAll).toHaveBeenCalledWith('caller-1', {
         status: undefined,
         assignedToId: undefined,
         objectId: undefined,
         projectId: undefined,
         parentTaskId: undefined,
+        checklistId: undefined,
+        objectGroupId: undefined,
+        concernedUserId: undefined,
       });
     });
   });
@@ -78,9 +91,11 @@ describe('TasksController', () => {
       } as any;
       const task = { id: 'new-id', ...dto } as any;
       tasksService.create!.mockResolvedValue(task);
+      const user = { userId: 'caller-1' };
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, user);
       expect(result).toEqual(task);
+      expect(tasksService.create).toHaveBeenCalledWith(dto, 'caller-1');
     });
   });
 
@@ -129,7 +144,7 @@ describe('TasksController', () => {
   describe('createComment', () => {
     it('should create a comment for a task with author inferred from user', async () => {
       const dto = { content: 'Note' };
-      const user = { sub: 'u1', firstName: 'John', lastName: 'Doe', email: 'john@test.com' };
+      const user = { userId: 'u1', firstName: 'John', lastName: 'Doe', email: 'john@test.com' };
       const comment = { id: 'c-new', taskId: 'task-1', authorId: 'u1', authorName: 'John Doe', content: 'Note' } as any;
       commentsService.create!.mockResolvedValue(comment);
 

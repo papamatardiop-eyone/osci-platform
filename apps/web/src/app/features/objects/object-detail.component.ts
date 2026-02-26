@@ -6,11 +6,12 @@ import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ConfirmService } from '../../shared/components/confirm/confirm.service';
 import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-gauge.component';
+import { ResourceAccessPanelComponent } from '../../shared/components/resource-access-panel/resource-access-panel.component';
 
 @Component({
   selector: 'app-object-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, ScoreGaugeComponent],
+  imports: [CommonModule, RouterLink, FormsModule, ScoreGaugeComponent, ResourceAccessPanelComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `
     <div class="space-y-6" *ngIf="object">
@@ -41,11 +42,11 @@ import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-g
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button *ngIf="perm.canGlobal('object', 'update')" (click)="isEditing = !isEditing"
+          <button *ngIf="perm.canResource('object', objectId, 'update')" (click)="isEditing = !isEditing"
             class="px-3 py-1.5 rounded-lg border border-white/10 text-xs text-zinc-400 font-brand hover:bg-white/5 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:pen-linear" width="14"></iconify-icon>Edit
           </button>
-          <button *ngIf="perm.canGlobal('object', 'delete')" (click)="deleteObject()"
+          <button *ngIf="perm.canResource('object', objectId, 'delete')" (click)="deleteObject()"
             class="px-3 py-1.5 rounded-lg border border-rose-500/20 text-xs text-rose-500 font-brand hover:bg-rose-500/10 transition-colors flex items-center gap-2">
             <iconify-icon icon="solar:trash-bin-trash-linear" width="14"></iconify-icon>Delete
           </button>
@@ -107,7 +108,7 @@ import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-g
         <div class="col-span-4 glass-panel p-6 flex flex-col items-center justify-center">
           <p class="text-[10px] uppercase tracking-wider text-zinc-500 mb-4">Security Score</p>
           <app-score-gauge [score]="score?.value || 0" size="lg"></app-score-gauge>
-          <button *ngIf="perm.canGlobal('object', 'update')" (click)="recomputeScore()"
+          <button *ngIf="perm.canResource('object', objectId, 'update')" (click)="recomputeScore()"
             class="mt-4 px-3 py-1.5 rounded-lg border border-white/10 text-[10px] text-zinc-400 font-brand hover:bg-white/5 transition-colors flex items-center gap-1">
             <iconify-icon icon="solar:refresh-linear" width="12"></iconify-icon>Recompute
           </button>
@@ -221,6 +222,13 @@ import { ScoreGaugeComponent } from '../../shared/components/score-gauge/score-g
           </div>
         </div>
       </div>
+
+      <!-- Access Control Panel -->
+      <app-resource-access-panel
+        *ngIf="perm.canResource('object', objectId, 'manage')"
+        [resourceType]="'object'"
+        [resourceId]="objectId">
+      </app-resource-access-panel>
     </div>
 
     <!-- Loading state -->
@@ -252,7 +260,7 @@ export class ObjectDetailComponent implements OnInit {
   editData = { name: '', description: '' };
   loadError = false;
 
-  private objectId = '';
+  objectId = '';
 
   constructor(
     private route: ActivatedRoute,

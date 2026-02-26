@@ -33,7 +33,7 @@ Les objets peuvent être regroupés en **groupes d'objets** pour faciliter la ge
 
 ## Projets de sécurité
 
-Un **projet de sécurité** regroupe des objets et des checklists autour d'un périmètre défini (un projet métier, un audit, une campagne de remédiation). Il fournit une vue consolidée du score et de l'avancement.
+Un **projet de sécurité** regroupe des objets et des checklists autour d'un périmètre défini (un projet métier, un audit, une campagne de remédiation). Il fournit une vue consolidée du score et de l'avancement. Chaque projet a un **lead** (owner) et une **liste de concernés**. Le lead est le responsable du projet ; les concernés sont les personnes impliquées ou à informer.
 
 ## Checklists et items
 
@@ -53,7 +53,7 @@ Une **preuve** est un document, fichier ou lien attaché à un contrôle lors d'
 
 ## Tâches de remédiation
 
-Lorsqu'un contrôle est identifié comme non conforme, une **tâche de remédiation** est créée. Les tâches sont organisées dans un Kanban (À faire, En cours, Terminé) pour faciliter le suivi.
+Lorsqu'un contrôle est identifié comme non conforme, une **tâche de remédiation** est créée. Les tâches sont organisées dans un Kanban (À faire, En cours, Terminé) pour faciliter le suivi. Chaque tâche peut avoir un **assigné** (exécutant), un **lead** (responsable du suivi) et une **liste de concernés**. L'assignation et la gestion des concernés se font depuis le Kanban et le détail de la tâche, via le sélecteur d'utilisateurs de la plateforme.
 
 ## Référentiels et contrôles de framework
 
@@ -81,6 +81,8 @@ OSCI utilise un modèle d'autorisation riche combinant :
 - **Rôles** — Ensembles de permissions prédéfinis (SecurityAdmin, SecurityManager, Auditor, etc.)
 - **Permissions directes** — Permissions individuelles sur un type de ressource
 - **Groupes d'utilisateurs** — Regroupements dont les membres héritent des rôles et permissions du groupe
+- **Accès par ressource** — Permissions sur une instance spécifique (ex. un projet particulier)
 - **Permissions effectives** — Union de toutes les sources de permissions pour un utilisateur donné
+- **Hiérarchie des actions** — Les actions de niveau supérieur impliquent automatiquement les actions de base (`update` implique `read`, `manage` implique tout)
 
 Pour plus de détails, consultez [Rôles et permissions](roles-and-permissions).

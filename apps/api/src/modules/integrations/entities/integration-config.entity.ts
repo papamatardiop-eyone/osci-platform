@@ -26,6 +26,9 @@ export class IntegrationConfig {
   @Column({ type: 'timestamp', nullable: true })
   lastSyncAt!: Date | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  createdById!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

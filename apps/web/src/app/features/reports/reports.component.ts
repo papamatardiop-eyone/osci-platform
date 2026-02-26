@@ -129,7 +129,7 @@ import { PermissionService } from '../../core/services/permission.service';
                 <div class="flex gap-2">
                   <button *ngIf="report.id" (click)="viewReport(report.id)"
                     class="px-2 py-1 rounded text-[10px] text-zinc-400 font-brand hover:bg-white/5 transition-colors">View</button>
-                  <button *ngIf="report.id && perm.canGlobal('report', 'export')" (click)="downloadReport(report)"
+                  <button *ngIf="report.id && (perm.canGlobal('report', 'export') || perm.canResource('report', report.id, 'export'))" (click)="downloadReport(report)"
                     class="px-2 py-1 rounded text-[10px] text-zinc-400 font-brand hover:bg-white/5 transition-colors">Download</button>
                 </div>
               </td>

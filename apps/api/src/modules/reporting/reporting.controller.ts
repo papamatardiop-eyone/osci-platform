@@ -12,11 +12,12 @@ import {
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PolicyGuard } from '../../common/guards/policy.guard';
+import { PolicyGuard, RequirePermission } from '../../common/guards/policy.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ReportingService } from './reporting.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { Report } from './entities/report.entity';
+import { ResourceType, Action } from '../../common/enums';
 
 @ApiTags('reports')
 @ApiBearerAuth()
@@ -26,22 +27,23 @@ export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
   @Get()
-  async findAll(): Promise<Report[]> {
-    return this.reportingService.findAll();
+  async findAll(@CurrentUser() user: { userId: string }): Promise<Report[]> {
+    return this.reportingService.findAll(user.userId);
   }
 
   @Post()
   async generate(
     @Body() dto: CreateReportDto,
-    @CurrentUser() user: { sub: string },
+    @CurrentUser() user: { userId: string },
   ): Promise<Report> {
-    if (!user?.sub) {
-      throw new UnauthorizedException('User identity (sub) not found in token');
+    if (!user?.userId) {
+      throw new UnauthorizedException('User identity (userId) not found in token');
     }
-    return this.reportingService.generateReport(dto, user.sub);
+    return this.reportingService.generateReport(dto, user.userId);
   }
 
   @Get(':id/download')
+  @RequirePermission({ type: ResourceType.Report, action: Action.Export, idParam: 'id' })
   async download(
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: Response,

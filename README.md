@@ -74,7 +74,7 @@ The OSCI Platform follows a microservices architecture with the following compon
 
 - **Web (Angular + Nginx):** Single-page application with Keycloak OIDC authentication, served via Nginx with security headers and API proxying.
 - **API (NestJS):** RESTful backend handling business logic, database operations, and integrations with OPA and MinIO.
-- **PostgreSQL:** Primary relational database storing security objects, checklists, tasks, and audit logs. Also hosts the Keycloak database.
+- **PostgreSQL:** Primary relational database storing security objects, checklists, tasks, and audit logs. Also hosts the Keycloak database. Projects and tasks support a **lead** (owner/responsible) and a **list of concerned** users for tracking and for the "My tasks" and "Projects where I am concerned" filters.
 - **Keycloak:** OpenID Connect identity provider with RBAC, TOTP/MFA, and PKCE-secured flows. A one-off `keycloak-realm-init` service creates the realm admin user from `.env` on first start.
 - **OPA (Open Policy Agent):** Policy-as-code authorization engine enforcing fine-grained access control via Rego policies.
 - **MinIO:** S3-compatible object storage for evidence files (screenshots, documents, reports).

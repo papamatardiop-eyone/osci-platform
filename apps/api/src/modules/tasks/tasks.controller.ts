@@ -40,23 +40,27 @@ export class TasksController {
   @ApiQuery({ name: 'objectGroupId', required: false })
   @ApiQuery({ name: 'concernedUserId', required: false, description: 'Filter tasks where user is assignee, lead, or concerned' })
   async findAll(
+    @CurrentUser() user: { userId: string },
     @Query('status') status?: TaskStatus,
     @Query('assignedToId') assignedToId?: string,
-    @Query('objectId') objectId?: string,
-    @Query('projectId') projectId?: string,
-    @Query('parentTaskId') parentTaskId?: string,
-    @Query('checklistId') checklistId?: string,
-    @Query('objectGroupId') objectGroupId?: string,
-    @Query('concernedUserId') concernedUserId?: string,
+    @Query('objectId', new ParseUUIDPipe({ optional: true })) objectId?: string,
+    @Query('projectId', new ParseUUIDPipe({ optional: true })) projectId?: string,
+    @Query('parentTaskId', new ParseUUIDPipe({ optional: true })) parentTaskId?: string,
+    @Query('checklistId', new ParseUUIDPipe({ optional: true })) checklistId?: string,
+    @Query('objectGroupId', new ParseUUIDPipe({ optional: true })) objectGroupId?: string,
+    @Query('concernedUserId', new ParseUUIDPipe({ optional: true })) concernedUserId?: string,
   ) {
-    return this.tasksService.findAll({
+    return this.tasksService.findAll(user.userId, {
       status, assignedToId, objectId, projectId, parentTaskId, checklistId, objectGroupId, concernedUserId,
     });
   }
 
   @Post()
-  async create(@Body() dto: CreateTaskDto) {
-    return this.tasksService.create(dto);
+  async create(
+    @Body() dto: CreateTaskDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.tasksService.create(dto, user.userId);
   }
 
   @Get(':id')
